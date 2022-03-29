@@ -19,6 +19,6 @@
   },
   "homepage": "https://github.com/ttc-freebies/ttc-common-library#readme",
   "devDependencies": {
-    "adm-zip": "^0.5.9"
+    "adm-zip": "0.5.9"
   }
 }
