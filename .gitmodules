@@ -1,0 +1,3 @@
+[submodule "src_vendor"]
+	path = src_vendor
+	url = git@github.com:ttc-freebies/ttc--intervention-image.git
