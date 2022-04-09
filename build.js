@@ -41,8 +41,6 @@ const zipExtension = async (path, name, type) => {
   });
 
   await writeFile(`public/dist/lib_ttc_${version}.zip`, zip.toBuffer());
-
-  await rm(`src_vendor/vendor`, { recursive: true });
 }
 
 (async function exec() {
