@@ -32,7 +32,7 @@ const zipExtension = async (path, name, type) => {
     }
   });
 
-  zip.addLocalFolder(`src_vendor/vendor/Intervention/Image/src/intervention/image`, 'src/Freebies/Intervention/Image', /^(?!\.DS_Store)/);
+  zip.addLocalFolder(`src_vendor/vendor/intervention/image/src/Intervention/Image`, 'src/Freebies/Intervention/Image', /^(?!\.DS_Store)/);
 
   zip.getEntries().forEach(entry => {
     if (/^\.DS_Store/.test(entry.entryName)) {
