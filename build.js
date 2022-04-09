@@ -1,5 +1,5 @@
 const { readFile, writeFile, rm } = require('fs').promises;
-const { readdirSync, existsSync, fstat } = require('fs');
+const { readdirSync, existsSync } = require('fs');
 const admZip = require('adm-zip');
 const { version } = require('./package.json');
 
@@ -25,7 +25,7 @@ const zipExtension = async (path, name, type) => {
     if (file.isDirectory()) {
       if (file.name === 'Templates') return;
       zip.addLocalFolder(`${noRoot}/${file.name}`, file.name, /^(?!\.DS_Store)/);
-    } else if (file.name === `${name.toLowerCase()}.xml`) {
+    } else if (file.name === `${name}.xml`) {
       zip.addFile(file.name, xml);
     } else if (!['composer.json', 'composer.lock', '.DS_Store'].includes(file.name)) {
       zip.addLocalFile(`${noRoot}/${file.name}`, false);
@@ -40,7 +40,9 @@ const zipExtension = async (path, name, type) => {
     }
   });
 
-  writeFile(`public/dist/lib_ttc_${version}.zip`, zip.toBuffer());
+  await writeFile(`public/dist/lib_ttc_${version}.zip`, zip.toBuffer());
+
+  await rm(`src_vendor/vendor`, { recursive: true });
 }
 
 (async function exec() {
