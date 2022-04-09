@@ -10,10 +10,11 @@
   <authorEmail>d.grammatiko@gmail.com</authorEmail>
   <version>{{version}}</version>
   <description>TTC Common Library</description>
+  <namespace path="src">Ttc</namespace>
   <files>
-    <folder>Freebies</folder>
-    <folder>vendor</folder>
     <folder>language</folder>
+    <folder>src</folder>
+    <filename>ttc.xml</filename>
     <filename>license.txt</filename>
   </files>
 </extension>

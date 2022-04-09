@@ -5,7 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "prepare": "rm -rf vendor && cd src_vendor && composer install --prefer-dist --no-progress && node pre.js && ~/.composer/vendor/bin/rector process vendor && node prefix.js"
   },
   "repository": {
     "type": "git",
