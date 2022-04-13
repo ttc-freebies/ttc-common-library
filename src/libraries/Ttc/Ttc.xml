@@ -14,7 +14,7 @@
   <files>
     <folder>language</folder>
     <folder>src</folder>
-    <filename>ttc.xml</filename>
+    <filename>Ttc.xml</filename>
     <filename>license.txt</filename>
   </files>
 </extension>
