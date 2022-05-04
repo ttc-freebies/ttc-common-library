@@ -222,6 +222,8 @@ class Helper
 
     // Create the images with width = breakpoint
     $manager = new ImageManager(['driver' => $driver]);
+    // remove the first slash
+    $dirname = ltrim($dirname, '/');
 
     // Getting the image info
     $info = @getimagesize(JPATH_ROOT . '/' . $dirname . '/' . $filename . '.' . $extension);
