@@ -254,11 +254,7 @@ class Helper
     $srcSets->base->height = $info[1];
     $srcSets->base->version = $hash;
 
-    $channels = $info['channels'];
-
-    if ($info['mime'] == 'image/png') {
-      $channels = 4;
-    }
+    $channels = isset($info['channels']) ? $info['channels'] : 4;
 
     if (!isset($info['bits'])) {
       $info['bits'] = 16;
