@@ -216,7 +216,7 @@ class Helper
       $driver = 'gd';
     }
 
-    if (!$driver) {
+    if (!isset($driver)) {
       return;
     }
 
