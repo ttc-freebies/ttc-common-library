@@ -89,10 +89,10 @@ class Helper
       return $image;
     }
 
-    if (!is_dir(JPATH_ROOT . '/media/cached-resp-images/' . $pathInfo['dirname'])) {
+    if (!is_dir(JPATH_ROOT . '/media/cached-resp-images/' . str_replace('%20', ' ', $pathInfo['dirname']))) {
       if (
-        !@mkdir(JPATH_ROOT . '/media/cached-resp-images/' . $pathInfo['dirname'], 0755, true)
-        && !is_dir(JPATH_ROOT . '/media/cached-resp-images/' . $pathInfo['dirname'])
+        !@mkdir(JPATH_ROOT . '/media/cached-resp-images/' . str_replace('%20', ' ', $pathInfo['dirname']), 0755, true)
+        && !is_dir(JPATH_ROOT . '/media/cached-resp-images/' . str_replace('%20', ' ', $pathInfo['dirname']))
       ) {
         return $image;
       }
@@ -100,8 +100,8 @@ class Helper
 
     return $this->buildSrcset(
       [
-        'dirname'   => $pathInfo['dirname'],
-        'filename'  => $pathInfo['filename'],
+        'dirname'   => str_replace('%20', ' ', $pathInfo['dirname']),
+        'filename'  => str_replace('%20', ' ', $pathInfo['filename']),
         'extension' => $pathInfo['extension'],
         'tag'       => $image,
       ],
@@ -126,7 +126,7 @@ class Helper
     }
 
     if (!is_file(JPATH_ROOT . '/media/cached-resp-images/___data___/' . $image['dirname'] . '/' . $image['filename'] . '.json')) {
-      $this->createImages($image['dirname'], $image['filename'], $image['extension']);
+      $this->createImages(str_replace('%20', ' ', $image['dirname']), $image['filename'], $image['extension']);
     }
 
     try {
@@ -286,7 +286,7 @@ class Helper
           $this->qualityJPG,
           $extension
         );
-        $srcSets->base->srcset[$this->validSizes[$i]] = $fileSrc . '.' . $extension . '?version=' . $hash . ' ' . $this->validSizes[$i] . 'w';
+        $srcSets->base->srcset[$this->validSizes[$i]] = str_replace(' ', '%20', $fileSrc) . '.' . $extension . '?version=' . $hash . ' ' . $this->validSizes[$i] . 'w';
 
         if ($this->enableWEBP && (($driver === 'imagick' && \Imagick::queryFormats('WEBP')) || ($driver === 'gd' && function_exists('imagewebp')))) {
           // Save the image as webp
@@ -380,7 +380,7 @@ class Helper
       $imageType,
     );
     if (!isset($srcSets->{$imageType})) $srcSets = $this->createObject($imageType, $srcSets, $hash);
-    $srcSets->{$imageType}->srcset[$size] = $fileSrc . '.' . $imageType . '?version=' . $hash . ' ' . $size . 'w';
+    $srcSets->{$imageType}->srcset[$size] = str_replace(' ', '%20', $fileSrc) . '.' . $imageType . '?version=' . $hash . ' ' . $size . 'w';
   }
 
   /**
@@ -410,8 +410,8 @@ class Helper
 		$path = (substr($path, 0, 1) === '/' ? $path : '/' . $path);
 
 		return [
-			'path' => $path,
-			'pathReal' => realpath(JPATH_ROOT . $path),
+			'path' => str_replace('%20', ' ', $path),
+			'pathReal' => realpath(JPATH_ROOT . str_replace('%20', ' ', $path)),
 		];
 	}
 }
