@@ -226,7 +226,7 @@ class Helper
     }
 
     // Create the images with width = breakpoint
-    $manager = new ImageManager(['driver' => $driver]);
+    $manager = new ImageManager($driver);
     // remove the first slash
     $dirname = ltrim($dirname, '/');
 
@@ -286,21 +286,21 @@ class Helper
         });
 
         // Save the image
-        $image->save(
-          JPATH_ROOT . '/' . $fileSrc . '.' . $extension,
-          $this->qualityJPG,
-          $extension
-        );
+        if ($info['mime'] === 'image/jpeg')
+          $image->toJpeg($this->qualityJPG)->save(JPATH_ROOT . '/' . $fileSrc . '.' . $extension);
+        else
+          $image->toPng($this->qualityJPG)->save(JPATH_ROOT . '/' . $fileSrc . '.' . $extension);
+
         $srcSets->base->srcset[$this->validSizes[$i]] = str_replace(' ', '%20', $fileSrc) . '.' . $extension . '?version=' . $hash . ' ' . $this->validSizes[$i] . 'w';
 
         if ($this->enableWEBP && (($driver === 'imagick' && \Imagick::queryFormats('WEBP')) || ($driver === 'gd' && function_exists('imagewebp')))) {
           // Save the image as webp
-          $this->createImage($image, $fileSrc, 'webp', $this->qualityWEBP, $srcSets, $hash, $this->validSizes[$i]);
+          $this->createImage($image, $fileSrc, 'webp', $this->qualityWEBP, $srcSets, $hash, $this->validSizes[$i], 'toWebp');
         }
 
         if ($this->enableAVIF && (($driver === 'imagick' && \Imagick::queryFormats('AVIF')) || ($driver === 'gd' && function_exists('imageavif')))) {
           // Save the image as avif
-          $this->createImage($image, $fileSrc, 'avif', $this->qualityAVIF, $srcSets, $hash, $this->validSizes[$i]);
+          $this->createImage($image, $fileSrc, 'avif', $this->qualityAVIF, $srcSets, $hash, $this->validSizes[$i], 'toAvif');
         }
 
         $image->destroy();
@@ -375,15 +375,10 @@ class Helper
    * @param string  $hash
    * @param int     $size
    */
-  private function createImage($image, $fileSrc, $imageType, $quality, $srcSets, $hash, $size)
+  private function createImage($image, $fileSrc, $imageType, $quality, $srcSets, $hash, $size, $as)
   {
     // Save the image as avif
-    $image->encode($imageType);
-    $image->save(
-      JPATH_ROOT . '/' . $fileSrc . '.' . $imageType,
-      $quality,
-      $imageType,
-    );
+    $image->{$as}($quality)->save(JPATH_ROOT . '/' . $fileSrc . '.' . $imageType);
     if (!isset($srcSets->{$imageType})) $srcSets = $this->createObject($imageType, $srcSets, $hash);
     $srcSets->{$imageType}->srcset[$size] = str_replace(' ', '%20', $fileSrc) . '.' . $imageType . '?version=' . $hash . ' ' . $size . 'w';
   }
