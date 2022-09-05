@@ -1,8 +1,10 @@
 <?php
+
 /**
  * @copyright   Copyright (C) 2021 Dimitrios Grammatikogiannis. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
+
 namespace Ttc\Freebies\Responsive;
 
 defined('_JEXEC') || die();
@@ -12,6 +14,7 @@ use Joomla\CMS\Helper\MediaHelper;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Registry\Registry;
+use Ttc\Intervention\Image\ImageManager;
 
 /**
  * Content responsive images plugin
@@ -26,7 +29,8 @@ class Helper
   private $validSizes   = [200, 320, 480, 768, 992, 1200, 1600, 1920];
   private $validExt     = ['jpg', 'jpeg', 'png']; // 'webp', 'avif'
 
-  public function __construct() {
+  public function __construct()
+  {
     $this->enabled = PluginHelper::isEnabled('content', 'responsive');
     if ($this->enabled) {
       $plugin            = PluginHelper::getPlugin('content', 'responsive');
@@ -41,18 +45,15 @@ class Helper
       $excludeFolders    = preg_split('/[\s,]+/', $this->params->get('excludeFolders'));
       $sizes             = preg_split('/[\s,]+/', $this->params->get('sizes'));
 
-
-      if (!is_array($sizes)) {
+      if (!is_array($sizes) || count($sizes) < 1) {
         $sizes = [200, 320, 480, 768, 992, 1200, 1600, 1920];
       }
 
       asort($sizes);
       $this->validSizes = $sizes;
-      $this->excludeFolders = [];
-
-      foreach($excludeFolders as $folder) {
-        $this->excludeFolders[] = JPATH_ROOT . '/' . $folder;
-      }
+      $this->excludeFolders = array_map(function ($folder) {
+        return JPATH_ROOT . '/' . $folder;
+      }, $excludeFolders);
     }
   }
 
@@ -75,26 +76,28 @@ class Helper
 
     // Get the original path
     preg_match('/src\s*=\s*"(.+?)"/', $image, $match);
-    $originalImagePath = $match[1];
-    $originalImagePath = str_replace(Uri::base(), '', $originalImagePath);
-    $path = realpath(JPATH_ROOT . (substr(MediaHelper::getCleanMediaFieldValue($originalImagePath), 0, 1) === '/' ? $originalImagePath : '/' . $originalImagePath));
+    if (count($match) < 2) {
+      return $image;
+    }
+
+    $paths = $this->getPaths($match[1]);
 
     // Valid root path and not excluded path
-    if (strpos($path, JPATH_ROOT) !== 0 || strpos($path, JPATH_ROOT) === false || in_array(dirname($path), $this->excludeFolders)) {
+    if (strpos($paths['pathReal'], JPATH_ROOT) !== 0 || strpos($paths['pathReal'], JPATH_ROOT) === false || in_array(dirname($paths['pathReal']), $this->excludeFolders)) {
       return $image;
     }
 
-    $originalImagePathInfo = pathinfo($originalImagePath);
+    $pathInfo = pathinfo($paths['path']);
 
     // Bail out if no images supported
-    if (!in_array(mb_strtolower($originalImagePathInfo['extension']), $this->validExt) || !file_exists(JPATH_ROOT . '/' . $originalImagePath)) {
+    if (!in_array(mb_strtolower($pathInfo['extension']), $this->validExt) || !file_exists(JPATH_ROOT . $paths['path'])) {
       return $image;
     }
 
-    if (!is_dir(JPATH_ROOT . '/media/cached-resp-images/' . $originalImagePathInfo['dirname'])) {
+    if (!is_dir(JPATH_ROOT . '/media/cached-resp-images/' . str_replace('%20', ' ', $pathInfo['dirname']))) {
       if (
-        !@mkdir(JPATH_ROOT . '/media/cached-resp-images/' . $originalImagePathInfo['dirname'], 0755, true)
-        && !is_dir(JPATH_ROOT . '/media/cached-resp-images/' . $originalImagePathInfo['dirname'])
+        !@mkdir(JPATH_ROOT . '/media/cached-resp-images/' . str_replace('%20', ' ', $pathInfo['dirname']), 0755, true)
+        && !is_dir(JPATH_ROOT . '/media/cached-resp-images/' . str_replace('%20', ' ', $pathInfo['dirname']))
       ) {
         return $image;
       }
@@ -102,9 +105,9 @@ class Helper
 
     return $this->buildSrcset(
       [
-        'dirname'   => $originalImagePathInfo['dirname'],
-        'filename'  => $originalImagePathInfo['filename'],
-        'extension' => $originalImagePathInfo['extension'],
+        'dirname'   => str_replace('%20', ' ', $pathInfo['dirname']),
+        'filename'  => str_replace('%20', ' ', $pathInfo['filename']),
+        'extension' => $pathInfo['extension'],
         'tag'       => $image,
       ],
       $breakpoints,
@@ -128,7 +131,7 @@ class Helper
     }
 
     if (!is_file(JPATH_ROOT . '/media/cached-resp-images/___data___/' . $image['dirname'] . '/' . $image['filename'] . '.json')) {
-      $this->createImages($image['dirname'], $image['filename'], $image['extension']);
+      $this->createImages(str_replace('%20', ' ', $image['dirname']), $image['filename'], $image['extension']);
     }
 
     try {
@@ -192,6 +195,10 @@ class Helper
       $fallBack = str_replace('<img ', '<img loading="lazy" ', $fallBack);
     }
 
+    if (preg_match('/decoding\s*=\s*".+?"/', $fallBack) === 0) {
+      $fallBack = str_replace('<img ', '<img decoding="async" ', $fallBack);
+    }
+
     return  $output . $fallBack . '</picture>';
   }
 
@@ -214,14 +221,14 @@ class Helper
       $driver = 'gd';
     }
 
-    if (!$driver) {
+    if (!isset($driver)) {
       return;
     }
 
-    require_once __DIR__ . '/../../vendor/autoload.php';
-
     // Create the images with width = breakpoint
-    $manager = new \Ttc\Intervention\Image\ImageManager(['driver' => $driver]);
+    $manager = new ImageManager(['driver' => $driver]);
+    // remove the first slash
+    $dirname = ltrim($dirname, '/');
 
     // Getting the image info
     $info = @getimagesize(JPATH_ROOT . '/' . $dirname . '/' . $filename . '.' . $extension);
@@ -252,11 +259,7 @@ class Helper
     $srcSets->base->height = $info[1];
     $srcSets->base->version = $hash;
 
-    $channels = $info['channels'];
-
-    if ($info['mime'] == 'image/png') {
-      $channels = 4;
-    }
+    $channels = isset($info['channels']) ? $info['channels'] : 4;
 
     if (!isset($info['bits'])) {
       $info['bits'] = 16;
@@ -288,7 +291,7 @@ class Helper
           $this->qualityJPG,
           $extension
         );
-        $srcSets->base->srcset[$this->validSizes[$i]] = $fileSrc . '.' . $extension . '?version=' . $hash . ' ' . $this->validSizes[$i] . 'w';
+        $srcSets->base->srcset[$this->validSizes[$i]] = str_replace(' ', '%20', $fileSrc) . '.' . $extension . '?version=' . $hash . ' ' . $this->validSizes[$i] . 'w';
 
         if ($this->enableWEBP && (($driver === 'imagick' && \Imagick::queryFormats('WEBP')) || ($driver === 'gd' && function_exists('imagewebp')))) {
           // Save the image as webp
@@ -301,6 +304,7 @@ class Helper
         }
 
         $image->destroy();
+        \gc_collect_cycles();
       }
     }
 
@@ -349,8 +353,8 @@ class Helper
   /**
    * Helper, creates a new obj
    *
-   * @param $dir
-   * @param $contents
+   * @param string $type
+   * @param object $obj
    */
   private function createObject($type, $obj)
   {
@@ -363,13 +367,13 @@ class Helper
   /**
    * Helper, creates an image
    *
-   * @param $image
-   * @param $fileSrc
-   * @param $imageType
-   * @param $quality
-   * @param $srcSets
-   * @param $hash
-   * @param $size
+   * @param \Ttc\FreebiesIntervention\Image\ImageManager  $image
+   * @param string  $fileSrc
+   * @param string  $imageType
+   * @param int     $quality
+   * @param object  $srcSets
+   * @param string  $hash
+   * @param int     $size
    */
   private function createImage($image, $fileSrc, $imageType, $quality, $srcSets, $hash, $size)
   {
@@ -381,14 +385,14 @@ class Helper
       $imageType,
     );
     if (!isset($srcSets->{$imageType})) $srcSets = $this->createObject($imageType, $srcSets, $hash);
-    $srcSets->{$imageType}->srcset[$size] = $fileSrc . '.' . $imageType . '?version=' . $hash . ' ' . $size . 'w';
+    $srcSets->{$imageType}->srcset[$size] = str_replace(' ', '%20', $fileSrc) . '.' . $imageType . '?version=' . $hash . ' ' . $size . 'w';
   }
 
   /**
    * Helper, returns the srcsets from the object for the given breakpoints
    *
-   * @param $obj
-   * @param $breakpoints
+   * @param object $obj
+   * @param array  $breakpoints
    */
   private function getSrcSets($obj, $breakpoints): string
   {
@@ -403,5 +407,16 @@ class Helper
       return implode(', ', array_reverse($retArr));
     }
     return '';
+  }
+
+  private function getPaths($path)
+  {
+    $path = MediaHelper::getCleanMediaFieldValue(str_replace(Uri::base(), '', $path));
+    $path = (substr($path, 0, 1) === '/' ? $path : '/' . $path);
+
+    return [
+      'path' => str_replace('%20', ' ', $path),
+      'pathReal' => realpath(JPATH_ROOT . str_replace('%20', ' ', $path)),
+    ];
   }
 }

@@ -32,7 +32,9 @@ const zipExtension = async (path, name, type) => {
     }
   });
 
-  zip.addLocalFolder(`src_vendor/vendor`, 'vendor', /^(?!\.DS_Store)/);
+  zip.addLocalFolder(`src_vendor/vendor/intervention/gif/src`, 'src/Intervention/Gif', /^(?!\.DS_Store)/);
+  zip.addLocalFolder(`src_vendor/vendor/intervention/image/src`, 'src/Intervention/Image', /^(?!\.DS_Store)/);
+  zip.addLocalFolder(`src_vendor/vendor/intervention/mimesniffer/src`, 'src/Intervention/MimeSniffer', /^(?!\.DS_Store)/);
 
   zip.getEntries().forEach(entry => {
     if (/^\.DS_Store/.test(entry.entryName)) {
